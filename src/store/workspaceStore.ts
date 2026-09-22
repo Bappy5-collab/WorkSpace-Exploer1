@@ -44,7 +44,7 @@ interface WorkspaceState {
   revealItem: (id: string) => void;
   toggleExpand: (id: string) => void;
 
-  createItem: (type: ItemType, name: string) => void;
+    createItem: (type: ItemType, name: string, parentId?: string) => void;
   renameItem: (id: string, name: string) => void;
   deleteItem: (id: string) => void;
 
@@ -110,7 +110,7 @@ export const useWorkspace = create<WorkspaceState>()(
             : [...state.expandedIds, id],
         })),
 
-      createItem: (type, name) =>
+      createItem: (type, name, parentId) =>
         set((state) => {
           const id = crypto.randomUUID();
           const time = Date.now();
@@ -118,7 +118,7 @@ export const useWorkspace = create<WorkspaceState>()(
             id,
             name,
             type,
-            parentId: state.selectedFolderId,
+            parentId: parentId ?? state.selectedFolderId,
             createdAt: time,
             updatedAt: time,
           };

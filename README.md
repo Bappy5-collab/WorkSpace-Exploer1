@@ -1,6 +1,6 @@
 # Mini Workspace Explorer
 
-A browser based Mini Workspace Explorer built with Next.js, TypeScript and Zustand. The Mini Workspace Explorer provides a file manager interface for creating, browsing, searching, editing, renaming and deleting folders and text files.
+A browser-based file manager built with **Next.js, React, TypeScript and Zustand**. Users can create, browse, search, edit, rename and delete folders and text files. All data is stored in the browser (no backend).
 
 ## Live Demo
 
@@ -12,321 +12,228 @@ https://github.com/Bappy5-collab/WorkSpace-Exploer1
 
 ## Features
 
-* Hierarchical file and folder structure
-
-* Recursive sidebar tree navigation
-
-* Expand/collapse folders
-
-* Folder selection and navigation
-
-* Breadcrumb navigation
-
-* Create folders and text files
-
-* Rename. Folders
-
-* Delete. Folders
-
-* Recursive folder deletion
-
-* Text file editor
-
-* Save file content
-
-* Workspace- search
-
-* Search across deeply nested folders
-
-* Duplicate-name validation
-
-* Empty-name validation
-
-* Unsaved changes confirmation
-
-* modal and dialog components
-
-* Persistence using browser storage
-
-* Responsive workspace interface
+- Hierarchical workspace with unlimited folder nesting
+- Recursive sidebar tree with expand/collapse and selected-folder highlight
+- Clickable breadcrumb (e.g. `Workspace / Proje
+- Create folders and text files inside the selected folder
+- Rename and delete both files and folders
+- Recursive delete (a folder is deleted with all of its nested contents)
+- Text file editor (`<textarea>`) with Save button and `Ctrl/Cmd + S`
+- Workspace-wide search across all nested folde
+- Validation for empty names, invalid characters and duplicate names
+- Unsaved-changes protection (in-app dialog + b
+- Persistence with `localStorage`
+- Responsive layout (sidebar becomes a slide-in drawer on small screens)
 
 ## Tech Stack
 
-* Next.js
-
-* React
-
-* TypeScript
-
-* Zustand
-
-* CSS, TailwindCSS
-
-* Browser localStorage for persistence
+- Next.js 16 (App Router)
+- React 19
+- TypeScript
+- Zustand (with `persist` middleware)
+- Tailwind CSS v4
+- lucide-react (icons)
 
 ## Getting Started
 
 ### Prerequisites
 
-Make sure you have Node.js installed.
+Node.js 20.9 or later.
 
 ### Installation
 
-Clone the repository:
-
 ```bash
-
 git clone https://github.com/Bappy5-collab/WorkSpace-Exploer1.git
-
-```
-
-Navigate into the project:
-
-```bash
-
 cd WorkSpace-Exploer1
-
-```
-
-Install dependencies:
-
-```bash
-
 npm install
-
-```
-
-Start the development server:
-
-```bash
-
 npm run dev
-
 ```
 
-Open:
+Open http://localhost:3000
 
-```text
+### Available Scripts
 
-http://localhost:3000
-
-```
+| Command         | Description
+| --------------- | ----------------------------- |
+| `npm run dev`   | Start the development server  |
+| `npm run build` | Create a production build
+| `npm run start` | Start the production server   |
+| `npm run lint`  | Run ESLint                    |
 
 ## Project Structure
 
 ```text
-
 src/
-
+├── app/
+│   ├── layout.tsx              # Root layout a
+│   ├── page.tsx                # Main page: sidebar, header, toolbar, content area
+│   └── globals.css
 ├── components/
-
-│   ├── ui/
-
-│   │   ├── Modal.tsx
-
-│   │   ├── ConfirmDialog.tsx
-
-│   │   ├── NameDialog.tsx
-
-│   │   └── UnsavedDialog.tsx
-|
-
-│   │
-
-│   ├── Sidebar/
-
-│   │   ├── TreeView.tsx
-
-│   │   └── TreeNode.tsx
-
-│   │
-
-│   ├── MainPanel/
-
-│   │   ├── Breadcrumb.tsx
-
-│   │   ├── ItemRow.tsx
-
-│   │   ├── FolderContents.tsx
-
-│   │   └── Toolbar.tsx
-
-│   │
-
-│   ├── Editor/
-
-│   │   └─ FileEditor.tsx
-
-│   │
-
-│   └── Search/
-
-│       ├── SearchBar.tsx
-
-│       └── SearchResults.tsx
-
-│
-
+│   ├── Search/
+│   │   ├── SearchBar.tsx       # Search input
+│   │   └── SearchResult.tsx    # Search result
+│   └── ui/
+│       ├── Modal.tsx           # Reusable moda)
+│       ├── ConfirmDialog.tsx   # Delete confirmation
+│       ├── NameDialog.tsx      # Create / renan
+│       ├── UnsavedDialog.tsx   # Save / Discard / Keep editing dialog
+│       ├── Editor/
+│       │   └── FileEditor.tsx  # Text file edi
+│       ├── MainPanel/
+│       │   ├── Breadcrumb.tsx
+│       │   ├── Toolbar.tsx     # New folder/fider, search
+│       │   ├── FolderContents.tsx
+│       │   ├── ItemRow.tsx
+│       │   └── ItemMenu.tsx    # Per-item menu: New, Rename, Delete
+│       └── Sidebar/
+│           ├── TreeView.tsx
+│           └── TreeNode.tsx    # Recursive tre
+├── lib/
+│   ├── tree.ts                 # Tree helpers: search
+│   ├── validation.ts           # Name normalization and validation
+│   └── useDebounce.ts          # Debounce hook for search
 ├── store/
-
-├── types/
-
-├── utils/
-
-└── app/
-
+│   └── workspaceStore.ts       # Zustand store (state, actions, persistence)
+└── types/
+    └── index.ts                # FSItem and ItemsMap types
 ```
 
 ## State Management
 
-The Mini Workspace Explorer uses Zustand for centralized workspace state management.
+All workspace state lives in a single **Zustand** store (`src/store/workspaceStore.ts`). Components subscribe only to the slices they need, so the sidebar, breadcrumb, main panel, editor and search always stay in sync.
 
-The store manages:
+The store holds:
 
-* Workspace items
+| State              | Purpose                                              |
+| ------------------ | ------------------------|
+| `items`            | All files and folders (flat map, see below)          |
+| `selectedFolderId` | Folder shown in the main|
+| `openFileId`       | File currently open in the editor (or `null`)        |
+| `expandedIds`      | Expanded folders in the |
+| `draft`            | Editor text that is not saved yet                    |
+| `pendingAction`    | Navigation waiting for t|
 
-* Selected folder
+Actions: `selectFolder`, `openFile`, `revealIteem`, `renameItem`, `deleteItem`, `setDraft`,`saveFile`, `guard`, `resolvePending`.
 
-* Expanded folders
+**Persistence** uses Zustand's `persist` middleware with `localStorage` (key: `workspace-explorer-v1`).
 
-* File contents
-
-* Create operations
-
-* Rename operations
-
-* Delete operations
-
-* Navigation state
-
-* Persistence-related state
-
-Keeping workspace state in a store allows the sidebar, main panel, editor and search features of the Mini Workspace Explorer to stay synchronized.
+- Persisted: `items` (including file contents), `selectedFolderId`, `expandedIds`.
+- Not persisted: `openFileId`, `draft`, `pendingAction` (these are session-only UI state).
+- A custom `merge` checks the saved data on load (no root folder), the default workspace isused. A saved selected folder or expanded id that no longer exists is dropped.
+- Because `localStorage` exists only in the browser, the page renders a short loading state until it is mounted on the
+client. This avoids a server/client hydration m
 
 ## File-System Data Structure
 
-Workspace items of the Mini Workspace Explorer are represented using a data model.
-
-Each item contains information such as:
+Each item follows this shape (`src/types/index.
 
 ```ts
-
-{
-
-id: string;
-
-name: string;
-
-type: "folder" | "file";
-
-parentId: string, | null;
-
+interface FSItem {
+  id: string;
+  name: string;
+  type: "folder" | "file";
+  parentId: string | null; // null only for the root "Workspace" folder
+  content?: string;        // text content, files only
+  createdAt: number;
+  updatedAt: number;
 }
 
+type ItemsMap = Record<string, FSItem>;
 ```
 
-Files of the Mini Workspace Explorer additionally maintain their text content.
+Items are stored in a **flat, normalized map keyed by id**, not as a nested tree. The hierarchy comes from `parentId`.
 
-The `parentId` relationship of the Mini Workspace Explorer allows support of nesting levels.
+Why a flat map:
 
-Example:
+- Lookup, rename and save by id are O(1) and need no deep tree cloning.
+- Moving through the hierarchy is done by helpers in `src/lib/tree.ts`: `getChildren`, `getPath` (for the breadcrumb), `getDescendantIds` (for recursive delete) and `searchItems`.
+- It serializes directly to `localStorage`.
+- Nesting depth is unlimited because every item only points to its parent.
+
+The root folder has the fixed id `"root"`. The default workspace is:
 
 ```text
-
 Workspace
-
 ├── Projects
-
 │   ├── Webbly
-
 │   │   ├── notes.txt
-
 │   │   └── tasks.txt
-
 │   └── Personal
-
 ├── Documents
-
 └── README.txt
-
 ```
 
 ## Important Implementation Decisions
 
-### Recursive Tree Navigation
+### Navigation
 
-The sidebar tree of the Mini Workspace Explorer is implemented recursively so folders can be nested at any depth.
+- The sidebar shows **folders only**. Files are listed in the main panel, where they can be opened.
+- Selecting a folder also expands it in the sidebar.
+- Opening a file also selects its parent folder, so the tree and the breadcrumb show where the file is.
+- Items are sorted with folders first, then by ` comes before `file10`).
 
-### Folder Deletion
+### Create
 
-Deleting a folder of the Mini Workspace Explorer also removes all files and folders.
-
-### Navigation After Deletion
-
-If the selected folder of the Mini Workspace Explorer is deleted the Mini Workspace Explorer navigates to an appropriate parent folder.
+- New items are created inside the currently se
+- The item menu of a folder also has a **New** option. It creates the item inside that subfolder and then **navigates to that folder**, so the new item is visible and the folder becomes the selected folder.
 
 ### Validation
 
-The Mini Workspace Explorer prevents names, empty names and unsaved changes without confirmation.
+Names are checked live in the create/rename dialog (`src/lib/validation.ts`):
 
-* Empty. Folder names
+- Leading and trailing spaces are trimmed. An e
+- The name can be at most 100 characters and cannot contain `/` or `\`.
+- Duplicate names in the same folder are rejectsitive** (`Notes.txt` and `notes.txt` count asthe same).
+- A file name automatically gets a `.txt` exten A name that is only `.txt` is treated as empty.
 
-* Duplicate names within the parent folder
+### Rename
+
+- Files and folders can be renamed from the item menu.
+- The current folder can be renamed from the toolbar.
+- The open file can be renamed from the editor. text in the editor.
+- The root `Workspace` folder cannot be renamed or deleted.
+
+### Delete
+
+- Every delete asks for confirmation. For foldey nested items will also be deleted.
+- Deleting a folder removes it and all of its descendants.
+- If the selected folder (or one of its ancestoates to the **parent of the deleted folder**.
+- If the open file is deleted (directly or with its folder), the editor closes. Deleted folders are also removed from the
+expanded list.
+- The open file can be deleted from the editor. If it has unsaved changes, the confirmation message says they will be lost.
+
+### Text Editor and Unsaved Changes
+
+- Editor text is kept in a separate `draft`. The file's `content` is updated only on **Save** (button or `Ctrl/Cmd + S`). Leaving a file and coming back shows the saved content.
+- Any navigation away from a file with unsaved changes goes through `guard()`. This includes the sidebar, breadcrumb, folder
+list and search results. It opens a dialog withave and continue**.
+- Refreshing or closing the tab with unsaved changes triggers the browser's `beforeunload` warning.
 
 ### Search
 
-Search runs across the whole workspace instead of just the folder that is currently open. You can click results from deep folders to jump straight to where they are, in the workspace.
+- Search covers the **whole workspace**, includ matches item names and is case-insensitive.
+- The input is debounced (200 ms). Each result shows its location path and highlights the matching text.
+- Clicking a result expands all its parent folders in the sidebar. A folder result opens the folder, and a file result opens the file in the editor.
 
-### Unsaved Changes
+### Empty States
 
-When you try to exit a file that has unsaved changes the application shows a confirmation dialog before it throws those changes away.
+- An empty folder shows "This folder is empty".
+- An empty root shows "Your workspace is empty"ttons are still available.
+- A search with no matches shows a "No results" message.
 
-### Persistence
+### Responsive UI
 
-Workspace changes and file contents are saved in browser storage so the data stays there even after you refresh the page.
+On screens smaller than `md`, the sidebar becomrom the header menu button. It closes after younavigate. The toolbar buttons wrap on narrow screens.
 
-## Available Scripts
+## Edge Cases Handled
 
-Run the development server:
-
-```bash
-
-npm run dev
-
-```
-
-Create a production build:
-
-```bash
-
-npm run build
-
-```
-
-Start the production server:
-
-```bash
-
-npm run start
-
-```
-
-Run linting:
-
-```bash
-
-npm run lint
-
-```
-
-## Deployment
-
-The application's deployed using Vercel.
-
-Live application:
-
-https://workspace-explorer-app.vercel.app/
-
-## Assessment Scope
-
-This project does what the Webbly Media Mini Workspace Explorer assessment asks for. It covers workspace navigation, file and folder management text editing, search, persistence, validation, an UI and handling of edge cases.
+| Edge case                        | Handling                     |
+| -------------------------------- | ---------------------------- |
+| Duplicate file/folder names      | Blocked per folder,            case-insensitive                   |
+| Empty folders                    | Empty-stat                   |
+| Deleting a folder with contents  | Recursive delete, with nested item count in confirmation                       |
+| Deleting the selected folder     | Navigates t                  |
+| Searching deeply nested files    | Whole-workspace search, reveals path on click                              |
+| Unsaved text-file changes        | Guard dialog + browser refresh warning                            |
+| Empty workspace                  | Root cannosage shown         |
+| Corrupted / missing saved data   | Falls back to the default workspace                          |

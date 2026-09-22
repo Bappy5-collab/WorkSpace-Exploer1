@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { FolderOpen } from "lucide-react";
 import { useWorkspace } from "@/store/workspaceStore";
 import { ROOT_ID, countChildren, getChildren, getDescendantIds, sortItems } from "@/lib/tree";
-import { FSItem } from "@/types";
+import { FSItem, ItemType } from "@/types";
 import ItemRow from "./ItemRow";
 import NameDialog from "@/components/ui/NameDialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -16,11 +16,12 @@ export default function FolderContents() {
   const openFile = useWorkspace((s) => s.openFile);
   const renameItem = useWorkspace((s) => s.renameItem);
   const deleteItem = useWorkspace((s) => s.deleteItem);
+   const createItem = useWorkspace((s) => s.createItem);
   const guard = useWorkspace((s) => s.guard);
-
+  const revealItem = useWorkspace((s) => s.revealItem);
   const [renaming, setRenaming] = useState<FSItem | null>(null);
   const [deleting, setDeleting] = useState<FSItem | null>(null);
-
+ const [creating, setCreating] = useState<{ type: ItemType; parentId: string } | null>(null);
   const children = useMemo(
     () => sortItems(getChildren(items, selectedFolderId)),
     [items, selectedFolderId]
@@ -56,6 +57,9 @@ export default function FolderContents() {
             onOpen={() =>
               guard(() => (item.type === "folder" ? selectFolder(item.id) : openFile(item.id)))
             }
+              onNew={(type) =>
+              setCreating({ type, parentId: item.type === "folder" ? item.id : selectedFolderId })
+            }
             onRename={() => setRenaming(item)}
             onDelete={() => setDeleting(item)}
           />
@@ -72,6 +76,19 @@ export default function FolderContents() {
           submitLabel="Rename"
           onSubmit={(name) => renameItem(renaming.id, name)}
           onClose={() => setRenaming(null)}
+        />
+      )}
+        {creating && (
+        <NameDialog
+          title={creating.type === "folder" ? "New folder" : "New text file"}
+          type={creating.type}
+          parentId={creating.parentId}
+          submitLabel="Create"
+          onSubmit={(name) => {
+            createItem(creating.type, name, creating.parentId);
+            revealItem(creating.parentId);
+          }}
+          onClose={() => setCreating(null)}
         />
       )}
 
